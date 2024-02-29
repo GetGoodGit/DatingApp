@@ -2,12 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using API.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace API.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]  // api/users
-public class UsersController : ControllerBase
+[Authorize]
+public class UsersController : BaseApiController
 {
     private readonly DataContext _context;
     public UsersController(DataContext context)
@@ -28,7 +27,7 @@ public class UsersController : ControllerBase
     // writing asynchronous method for above code
     // async passes the request to other thread and get data
     // from data base then returns to main thread
-
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<AppUser>>> GetUsers()
     {
