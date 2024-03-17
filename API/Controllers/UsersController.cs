@@ -36,9 +36,17 @@ public class UsersController : BaseApiController
     // async passes the request to other thread and get data
     // from data base then returns to main thread
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<MemberDto>>> GetUsers()
+    public async Task<ActionResult<PagedList<MemberDto>>> GetUsers([FromQuery]UserParam userParam)
     {
-        var users = await _userRepository.GetMembersAsync();
+        var currentUser = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
+        userParam.CurrentUsername = currentUser.UserName;
+
+        if(string.IsNullOrEmpty(userParam.Gender))
+        {
+            userParam.Gender = currentUser.Gender == "male"?"female":"male";
+        }
+        var users = await _userRepository.GetMembersAsync(userParam);
+        Response.AddPaginationHeader(new PaginationHeader(users.CurrentPage,users.PageSize,users.TotalCount,users.TotalPages));
     
         return Ok(users);
     }

@@ -41,11 +41,25 @@ public class UserRepository:IUserRepository
         _context.Entry(user).State = EntityState.Modified;
     }
 
-    public async Task<IEnumerable<MemberDto>> GetMembersAsync()
+    public async Task<PagedList<MemberDto>> GetMembersAsync(UserParam userParam)
     {
-        return await _context.Users
-              .ProjectTo<MemberDto>(_mapper.ConfigurationProvider)
-              .ToListAsync();
+        var query =  _context.Users.AsQueryable();
+        query = query.Where(u=> u.UserName != userParam.CurrentUsername);
+        query = query.Where(u=>u.Gender == userParam.Gender);      
+
+        var minDob = DateOnly.FromDateTime(DateTime.Today.AddYears(-userParam.MaxAge-1));
+        var maxDob = DateOnly.FromDateTime(DateTime.Today.AddYears(-userParam.MinAge));
+
+        query = query.Where(u => u.DateOfBirth >= minDob && u.DateOfBirth <=maxDob);
+
+        query = userParam.OrderBy switch{
+            "created" => query.OrderByDescending(u=>u.Created),
+            _=>query.OrderByDescending(u=>u.lastActive)
+        };
+
+        return await PagedList<MemberDto>.CreateAsync(
+            query.AsNoTracking().ProjectTo<MemberDto>(_mapper.ConfigurationProvider),
+            userParam.PageNumber,userParam.PageSize);    
     }
 
     public async Task<MemberDto> GetMemberAsync(string username)
